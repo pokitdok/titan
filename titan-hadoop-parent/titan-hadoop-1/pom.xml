@@ -19,6 +19,12 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
             <version>${hadoop1.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>jets3t</artifactId>
+                    <groupId>net.java.dev.jets3t</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
