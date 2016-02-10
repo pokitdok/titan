@@ -15,6 +15,14 @@
     <name>Titan: Distributed Graph Database</name>
     <url>http://thinkaurelius.github.com/titan/</url>
 
+    <repositories>
+        <repository>
+            <id>maven-restlet</id>
+            <name>Public online Restlet repository</name>
+            <url>http://maven.restlet.org</url>
+        </repository>
+    </repositories>
+
     <description>
         Titan is a distributed graph database optimized for processing massive-scale graphs represented over a machine
         cluster.

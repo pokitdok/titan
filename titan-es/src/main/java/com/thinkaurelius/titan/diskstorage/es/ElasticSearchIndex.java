@@ -467,6 +467,8 @@ public class ElasticSearchIndex implements IndexProvider {
                     if (hasDualStringMapping(informations.get(add.field))) {
                         builder.field(getDualMappingName(add.field), (String) add.value);
                     }
+                } else if (add.value instanceof Boolean) {
+                    builder.field(add.field, add.value);
                 } else if (add.value instanceof Geoshape) {
                     Geoshape shape = (Geoshape) add.value;
                     if (shape.getType() == Geoshape.Type.POINT) {
@@ -631,17 +633,17 @@ public class ElasticSearchIndex implements IndexProvider {
             } else if (value instanceof String) {
                 Mapping map = getStringMapping(informations.get(key));
                 String fieldName = key;
-                if (map==Mapping.TEXT && !titanPredicate.toString().startsWith("CONTAINS"))
+                if (map == Mapping.TEXT && !titanPredicate.toString().startsWith("CONTAINS"))
                     throw new IllegalArgumentException("Text mapped string values only support CONTAINS queries and not: " + titanPredicate);
-                if (map==Mapping.STRING && titanPredicate.toString().startsWith("CONTAINS"))
+                if (map == Mapping.STRING && titanPredicate.toString().startsWith("CONTAINS"))
                     throw new IllegalArgumentException("String mapped string values do not support CONTAINS queries: " + titanPredicate);
-                if (map==Mapping.TEXTSTRING && !titanPredicate.toString().startsWith("CONTAINS"))
+                if (map == Mapping.TEXTSTRING && !titanPredicate.toString().startsWith("CONTAINS"))
                     fieldName = getDualMappingName(key);
 
                 if (titanPredicate == Text.CONTAINS) {
                     value = ((String) value).toLowerCase();
                     AndFilterBuilder b = FilterBuilders.andFilter();
-                    for (String term : Text.tokenize((String)value)) {
+                    for (String term : Text.tokenize((String) value)) {
                         b.add(FilterBuilders.termFilter(fieldName, term));
                     }
                     return b;
@@ -661,6 +663,13 @@ public class ElasticSearchIndex implements IndexProvider {
                     return FilterBuilders.notFilter(FilterBuilders.termFilter(fieldName, (String) value));
                 } else
                     throw new IllegalArgumentException("Predicate is not supported for string value: " + titanPredicate);
+            } else if (value instanceof Boolean) {
+                if (titanPredicate == Cmp.EQUAL) {
+                    return FilterBuilders.termFilter(key, value);
+                } else if (titanPredicate == Cmp.NOT_EQUAL) {
+                    return FilterBuilders.notFilter(FilterBuilders.termFilter(key, value));
+                } else
+                    throw new IllegalArgumentException("Predicate is not supported for boolean value: " + titanPredicate);
             } else if (value instanceof Geoshape) {
                 Preconditions.checkArgument(titanPredicate == Geo.WITHIN, "Relation is not supported for geo value: " + titanPredicate);
                 Geoshape shape = (Geoshape) value;
@@ -755,6 +764,8 @@ public class ElasticSearchIndex implements IndexProvider {
 
         if (Number.class.isAssignableFrom(dataType)) {
             if (titanPredicate instanceof Cmp) return true;
+        } else if (dataType == Boolean.class) {
+            if (titanPredicate == Cmp.EQUAL || titanPredicate == Cmp.NOT_EQUAL) return true;
         } else if (dataType == Geoshape.class) {
             return titanPredicate == Geo.WITHIN;
         } else if (AttributeUtil.isString(dataType)) {
@@ -776,7 +787,7 @@ public class ElasticSearchIndex implements IndexProvider {
     public boolean supports(KeyInformation information) {
         Class<?> dataType = information.getDataType();
         Mapping mapping = Mapping.getMapping(information);
-        if (Number.class.isAssignableFrom(dataType) || dataType == Geoshape.class) {
+        if (Number.class.isAssignableFrom(dataType) || dataType == Geoshape.class || dataType == Boolean.class) {
             if (mapping==Mapping.DEFAULT) return true;
         } else if (AttributeUtil.isString(dataType)) {
             if (mapping==Mapping.DEFAULT || mapping==Mapping.STRING
